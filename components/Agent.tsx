@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 
 import { cn } from "@/lib/utils";
 import { vapi } from "@/lib/vapi.sdk";
+import { interviewer } from "@/constants";
 
 enum CallStatus {
   INACTIVE = "INACTIVE",
@@ -23,6 +24,7 @@ const Agent = ({
   userName,
   userId,
   interviewId,
+  questions,
   feedbackId,
   type,
 }: AgentProps) => {
@@ -79,6 +81,19 @@ const Agent = ({
     };
   }, []);
 
+  const handleGenerateFeedback = async (messages: SavedMessage[]) => {
+    console.log("Generate feedback here.");
+    const { success, id } = {
+      success: true,
+      id: "feedback-id",
+    };
+    if (success && id) {
+      router.push(`/interview/${interviewId}/feedback`);
+    } else {
+      console.log("Error saving fedback");
+      router.push("/");
+    }
+  };
   useEffect(() => {
     if (messages.length > 0) {
       setLastMessage(messages[messages.length - 1].content);
@@ -87,6 +102,8 @@ const Agent = ({
     if (callStatus === CallStatus.FINISHED) {
       if (type === "generate") {
         router.push("/");
+      } else {
+        handleGenerateFeedback(messages);
       }
     }
   }, [messages, callStatus, feedbackId, interviewId, router, type, userId]);
@@ -99,6 +116,18 @@ const Agent = ({
         variableValues: {
           username: userName,
           userid: userId,
+        },
+      });
+    } else {
+      let formatedQuestions = "";
+      if (questions) {
+        formatedQuestions = questions
+          .map((question) => `-${question}`)
+          .join("\n");
+      }
+      await vapi.start(interviewer, {
+        variableValues: {
+          questions: formatedQuestions,
         },
       });
     }
